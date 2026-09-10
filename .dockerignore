@@ -1,0 +1,12 @@
+target/
+.git/
+.github/
+.idea/
+.vscode/
+.claude/
+observability/
+*.md
+.env
+*.local
+Dockerfile
+docker-compose.yml
