@@ -1,0 +1,146 @@
+package br.com.jodiel.transactionsapi.application.usecases.transaction;
+
+import br.com.jodiel.transactionsapi.domain.entities.User;
+import br.com.jodiel.transactionsapi.domain.errors.AppException;
+import br.com.jodiel.transactionsapi.domain.interfaces.AccountRepository;
+import br.com.jodiel.transactionsapi.domain.interfaces.UserRepository;
+import br.com.jodiel.transactionsapi.support.AbstractIntegrationTest;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Proves the balance is safe under concurrency. These are the tests that actually exercise
+ * {@code SELECT ... FOR UPDATE}: the mock-based unit tests only assert that the locking method was
+ * called, so they would still pass if the lock did nothing.
+ *
+ * <p>Run against the code without the lock, both tests fail — the first with a negative balance,
+ * the second with a Postgres deadlock (SQLSTATE 40P01).
+ */
+class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
+
+    @Autowired private WithdrawUseCase withdrawUseCase;
+    @Autowired private TransferUseCase transferUseCase;
+    @Autowired private DepositUseCase depositUseCase;
+    @Autowired private UserRepository userRepository;
+    @Autowired private AccountRepository accountRepository;
+
+    private String createFundedUser(long balance) {
+        String email = "conc-" + UUID.randomUUID() + "@example.com";
+        String id = userRepository.create(
+                User.create("Concurrency User", email, "hashed-password", null));
+        accountRepository.create(id);
+        if (balance > 0) depositUseCase.execute(id, balance);
+        return id;
+    }
+
+    private long balanceOf(String userId) {
+        return accountRepository.findByUserId(userId).orElseThrow().getBalance();
+    }
+
+    /**
+     * Fires every task at the same instant so they collide inside the read-check-write window
+     * instead of running one after another.
+     */
+    private <T> List<Future<T>> runConcurrently(int threads, Callable<T> task)
+            throws InterruptedException {
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        CountDownLatch startGate = new CountDownLatch(1);
+        try {
+            List<Future<T>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                futures.add(pool.submit(() -> {
+                    startGate.await();
+                    return task.call();
+                }));
+            }
+            startGate.countDown();
+            pool.shutdown();
+            assertThat(pool.awaitTermination(60, TimeUnit.SECONDS))
+                    .as("all tasks finished before the timeout")
+                    .isTrue();
+            return futures;
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    @DisplayName("10 simultaneous withdrawals of 100 against a balance of 500: exactly 5 succeed")
+    void concurrentWithdrawalsCannotOverdraw() throws Exception {
+        String userId = createFundedUser(500L);
+
+        AtomicInteger succeeded = new AtomicInteger();
+        AtomicInteger refused = new AtomicInteger();
+        List<Throwable> unexpected = new CopyOnWriteArrayList<>();
+
+        runConcurrently(10, () -> {
+            try {
+                withdrawUseCase.execute(userId, 100L);
+                succeeded.incrementAndGet();
+            } catch (AppException e) {
+                if ("Insufficient balance".equals(e.getMessage())) {
+                    refused.incrementAndGet();
+                } else {
+                    unexpected.add(e);
+                }
+            } catch (Throwable t) {
+                unexpected.add(t);
+            }
+            return null;
+        });
+
+        assertThat(unexpected).as("no unexpected failures").isEmpty();
+        assertThat(succeeded.get()).as("withdrawals allowed").isEqualTo(5);
+        assertThat(refused.get()).as("withdrawals refused").isEqualTo(5);
+
+        // The whole point: without the lock this lands at -500.
+        assertThat(balanceOf(userId)).as("final balance is never negative").isZero();
+    }
+
+    @Test
+    @DisplayName("transfers in both directions at once neither deadlock nor create money")
+    void opposingTransfersDoNotDeadlock() throws Exception {
+        String alice = createFundedUser(1_000L);
+        String bob = createFundedUser(1_000L);
+
+        String aliceEmail = userRepository.findById(alice).orElseThrow().getEmail();
+        String bobEmail = userRepository.findById(bob).orElseThrow().getEmail();
+
+        AtomicInteger completed = new AtomicInteger();
+        List<Throwable> failures = new CopyOnWriteArrayList<>();
+        AtomicInteger index = new AtomicInteger();
+
+        // Half the tasks send Alice -> Bob, half send Bob -> Alice. Locking the accounts in the
+        // order they are named would let two transactions each hold the row the other needs.
+        runConcurrently(10, () -> {
+            boolean aliceToBob = index.getAndIncrement() % 2 == 0;
+            try {
+                if (aliceToBob) {
+                    transferUseCase.execute(alice, bobEmail, 10L);
+                } else {
+                    transferUseCase.execute(bob, aliceEmail, 10L);
+                }
+                completed.incrementAndGet();
+            } catch (Throwable t) {
+                failures.add(t);
+            }
+            return null;
+        });
+
+        assertThat(failures).as("no deadlock or other failure").isEmpty();
+        assertThat(completed.get()).isEqualTo(10);
+
+        // Money is only ever moved, never created or destroyed.
+        assertThat(balanceOf(alice) + balanceOf(bob)).isEqualTo(2_000L);
+        assertThat(balanceOf(alice)).isNotNegative();
+        assertThat(balanceOf(bob)).isNotNegative();
+    }
+}

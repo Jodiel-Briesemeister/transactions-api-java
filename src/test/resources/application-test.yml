@@ -1,0 +1,35 @@
+# Datasource, Redis and RabbitMQ are supplied by Testcontainers at runtime.
+spring:
+  jpa:
+    show-sql: false
+  datasource:
+    hikari:
+      # The concurrency tests run 10 transactions at once; the default pool of 10 would leave
+      # no headroom for the assertions that read the balance afterwards.
+      maximum-pool-size: 20
+
+management:
+  tracing:
+    sampling:
+      probability: 0.0
+  otlp:
+    tracing:
+      # No collector in tests; exporting would just log connection failures.
+      endpoint: http://localhost:1/v1/traces
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  rate-limit:
+    # High enough that a test journey is never throttled by accident.
+    global-tries: 10000
+    auth-tries: 10000
+    login-tries: 10000
+    window-minutes: 15
+
+logging:
+  level:
+    root: WARN
+    br.com.jodiel.transactionsapi: INFO
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN
