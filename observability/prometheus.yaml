@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Spring Boot exposes metrics through Micrometer, so Prometheus scrapes the app directly
+  # instead of going through the OTel collector as the Node version does.
+  - job_name: transactions-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          service: transactions-api
+
+  - job_name: otel-collector
+    static_configs:
+      - targets: ['otel-collector:8889']

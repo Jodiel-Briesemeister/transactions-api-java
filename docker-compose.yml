@@ -1,0 +1,102 @@
+services:
+  db:
+    image: postgres:16
+    container_name: my_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: my_redis
+    restart: always
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata:/data
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: my_rabbitmq
+    restart: always
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+      - '${RABBITMQ_MANAGEMENT_PORT:-15672}:15672'
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel_collector
+    restart: always
+    ports:
+      - '4317:4317'
+      - '4318:4318'
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    depends_on:
+      - tempo
+      - loki
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    restart: always
+    user: root
+    command: ['-config.file=/etc/tempo-config.yaml']
+    volumes:
+      - ./observability/tempo-config.yaml:/etc/tempo-config.yaml
+      - tempodata:/tmp/tempo
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: always
+    user: root
+    command: ['-config.file=/etc/loki/loki-config.yaml']
+    volumes:
+      - ./observability/loki-config.yaml:/etc/loki/loki-config.yaml
+      - lokidata:/tmp/loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./observability/prometheus.yaml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - otel-collector
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - grafanadata:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:
+  tempodata:
+  lokidata:
+  grafanadata:
