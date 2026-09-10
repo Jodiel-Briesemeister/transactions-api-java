@@ -1,0 +1,127 @@
+### Transactions API — request collection
+### Run the requests top to bottom; @accessToken and @refreshToken fill themselves in.
+
+@host = http://localhost:8080
+@email = alice@example.com
+@password = Str0ng!Pass
+@recipientEmail = bob@example.com
+
+
+
+### Health
+GET {{host}}/health
+
+### Health with dependencies
+GET {{host}}/health/dependencies
+
+### Prometheus metrics
+GET {{host}}/actuator/prometheus
+
+
+### Register
+# @name register
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Alice Silva",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phone": "+5511999999999"
+}
+
+### Register the transfer recipient
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Bob Souza",
+  "email": "{{recipientEmail}}",
+  "password": "{{password}}"
+}
+
+### Login
+# @name login
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+@accessToken = {{login.response.body.accessToken}}
+@refreshToken = {{login.response.body.refreshToken}}
+
+### Balance
+GET {{host}}/transactions/balance
+Authorization: Bearer {{accessToken}}
+
+### Deposit
+POST {{host}}/transactions/deposit
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "amount": 10000 }
+
+### Withdraw
+POST {{host}}/transactions/withdraw
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "amount": 2500 }
+
+### Transfer
+POST {{host}}/transactions/transfer
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientEmail": "{{recipientEmail}}",
+  "amount": 1500
+}
+
+### List all transactions
+GET {{host}}/transactions
+Authorization: Bearer {{accessToken}}
+
+### List with filters (type is lowercase; dates are ISO-8601)
+GET {{host}}/transactions?type=transfer&from=2026-01-01T00:00:00&to=2030-01-01T00:00:00
+Authorization: Bearer {{accessToken}}
+
+### Profile
+GET {{host}}/user/profile
+Authorization: Bearer {{accessToken}}
+
+### Update profile
+PATCH {{host}}/user/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "name": "Alice Renamed" }
+
+### Rotate the token pair
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### Logout (revokes the refresh token and blacklists the access token)
+POST {{host}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### Deactivate account
+DELETE {{host}}/user/account
+Authorization: Bearer {{accessToken}}
+
+### Reactivate account
+POST {{host}}/auth/reactivate
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}

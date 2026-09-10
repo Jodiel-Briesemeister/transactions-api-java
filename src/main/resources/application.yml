@@ -1,0 +1,90 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: transactions-api
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:transactions}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    # Flyway owns the schema; Hibernate only validates that the mapping still matches it.
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: ${DB_SCHEMA:public}
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: ${DB_SCHEMA:public}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  rabbitmq:
+    addresses: ${RABBITMQ_URL:amqp://localhost:5672}
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  jwt:
+    # Required, no default on purpose: a fallback secret is a production accident waiting to happen.
+    secret: ${JWT_SECRET}
+    access-token-expires-in-seconds: ${ACCESS_TOKEN_EXPIRES_IN_SECONDS:900}
+    refresh-token-expires-in-days: ${REFRESH_TOKEN_EXPIRES_IN_DAYS:7}
+  cors:
+    allowed-origins: ${CORS_ORIGIN:http://localhost:3000,http://localhost:3002}
+  rate-limit:
+    global-tries: ${RATE_LIMIT_GLOBAL_TRIES:100}
+    auth-tries: ${RATE_LIMIT_AUTH_TRIES:50}
+    login-tries: ${RATE_LIMIT_LOGIN_TRIES:10}
+    window-minutes: ${RATE_LIMIT_WINDOW_MINUTES:15}
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: ${LOG_LEVEL:INFO}
