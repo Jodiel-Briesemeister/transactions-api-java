@@ -1,0 +1,21 @@
+target/
+*.class
+*.jar
+*.war
+
+.env
+*.local
+
+.idea/
+*.iml
+.vscode/
+*.class
+
+logs/
+*.log
+
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json
