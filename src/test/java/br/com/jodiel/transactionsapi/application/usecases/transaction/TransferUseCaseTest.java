@@ -1,6 +1,5 @@
 package br.com.jodiel.transactionsapi.application.usecases.transaction;
 
-import br.com.jodiel.transactionsapi.domain.entities.Account;
 import br.com.jodiel.transactionsapi.domain.entities.Transaction;
 import br.com.jodiel.transactionsapi.domain.entities.User;
 import br.com.jodiel.transactionsapi.domain.enums.Queue;
@@ -12,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,9 +21,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +30,7 @@ class TransferUseCaseTest {
     @Mock private AccountRepository accountRepository;
     @Mock private TransactionRepository transactionRepository;
     @Mock private MessagePublisher messagePublisher;
+    @Captor private ArgumentCaptor<Map<String, Object>> messageCaptor;
 
     @InjectMocks private TransferUseCase sut;
 
@@ -88,13 +86,11 @@ class TransferUseCaseTest {
 
         sut.execute(Fixtures.USER_ID, "jane@example.com", 100L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(messagePublisher, times(2)).publish(eq(Queue.NOTIFICATIONS_EMAIL), captor.capture());
+        verify(messagePublisher, times(2)).publish(eq(Queue.NOTIFICATIONS_EMAIL), messageCaptor.capture());
 
-        assertThat(captor.getAllValues()).extracting(m -> m.get("templateId"))
+        assertThat(messageCaptor.getAllValues()).extracting(m -> m.get("templateId"))
                 .containsExactly("transaction_transfer_sent", "transaction_transfer_received");
-        assertThat(captor.getAllValues()).extracting(m -> m.get("userEmail"))
+        assertThat(messageCaptor.getAllValues()).extracting(m -> m.get("userEmail"))
                 .containsExactly("john@example.com", "jane@example.com");
     }
 

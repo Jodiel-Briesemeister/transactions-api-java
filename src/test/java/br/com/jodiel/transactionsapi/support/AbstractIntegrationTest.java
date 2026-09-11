@@ -13,14 +13,14 @@ import org.testcontainers.utility.DockerImageName;
  * depends on the actual database dialect — the uuid column mapping, the Flyway migrations, the
  * SELECT ... FOR UPDATE lock — can only be verified here, not with mocks.
  *
- * <p>Uses the singleton container pattern: the containers are started once in a static initialiser
+ * <p>Uses the singleton container pattern: the containers are started once in a static initializer
  * and live for the whole JVM, with Testcontainers' Ryuk reaping them at the end.
  *
  * <p>Deliberately <em>not</em> annotated with {@code @Testcontainers}. That extension stops
  * {@code @Container} fields when each test class finishes, but Spring caches application contexts
- * across classes — so the second class would keep running against containers that had already been
- * torn down, and Lettuce's reconnect watchdog would spin forever on non-daemon threads, leaving the
- * test JVM unable to exit.
+ * across classes. The second class would then run against containers that were already torn down,
+ * and Lettuce's reconnect watchdog would spin forever on non-daemon threads, leaving the test JVM
+ * unable to exit.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -29,9 +29,11 @@ public abstract class AbstractIntegrationTest {
     static final PostgreSQLContainer<?> POSTGRES =
             new PostgreSQLContainer<>(DockerImageName.parse("postgres:16"));
 
+    @SuppressWarnings("resource")
     static final GenericContainer<?> REDIS =
             new GenericContainer<>(DockerImageName.parse("redis:7")).withExposedPorts(6379);
 
+    @SuppressWarnings("resource")
     static final GenericContainer<?> RABBITMQ =
             new GenericContainer<>(DockerImageName.parse("rabbitmq:4-alpine")).withExposedPorts(5672);
 

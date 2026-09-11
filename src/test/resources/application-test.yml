@@ -5,7 +5,7 @@ spring:
   datasource:
     hikari:
       # The concurrency tests run 10 transactions at once; the default pool of 10 would leave
-      # no headroom for the assertions that read the balance afterwards.
+      # no headroom for the assertions that read the balance afterward.
       maximum-pool-size: 20
 
 management:

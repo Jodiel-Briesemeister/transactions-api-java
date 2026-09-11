@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,7 +20,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +30,7 @@ class ReactivateAccountUseCaseTest {
     @Mock private AuthService authService;
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private MessagePublisher messagePublisher;
+    @Captor private ArgumentCaptor<Map<String, Object>> messageCaptor;
 
     @InjectMocks private ReactivateAccountUseCase sut;
 
@@ -47,10 +48,8 @@ class ReactivateAccountUseCaseTest {
         verify(userRepository).reactivate(Fixtures.USER_ID);
         assertThat(result.accessToken()).isEqualTo("access-token");
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), captor.capture());
-        assertThat(captor.getValue()).containsEntry("templateId", "user_reactivated");
+        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), messageCaptor.capture());
+        assertThat(messageCaptor.getValue()).containsEntry("templateId", "user_reactivated");
     }
 
     @Test

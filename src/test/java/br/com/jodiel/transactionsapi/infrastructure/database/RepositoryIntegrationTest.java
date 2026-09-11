@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Exercises the repositories against a real Postgres. These are the tests that would have caught
- * the original String-to-uuid mapping bug: every statement here binds a uuid parameter.
+ * the original String-to-uuid mapping bug: every statement here binds a UUID parameter.
  */
 class RepositoryIntegrationTest extends AbstractIntegrationTest {
 

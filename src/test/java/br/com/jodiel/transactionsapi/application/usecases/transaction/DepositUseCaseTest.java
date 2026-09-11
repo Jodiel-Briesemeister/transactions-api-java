@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,7 +20,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +29,7 @@ class DepositUseCaseTest {
     @Mock private TransactionRepository transactionRepository;
     @Mock private UserRepository userRepository;
     @Mock private MessagePublisher messagePublisher;
+    @Captor private ArgumentCaptor<Map<String, Object>> messageCaptor;
 
     @InjectMocks private DepositUseCase sut;
 
@@ -48,10 +49,8 @@ class DepositUseCaseTest {
         assertThat(captor.getValue().getType()).isEqualTo(TransactionType.DEPOSIT);
         assertThat(captor.getValue().getAmount()).isEqualTo(250L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> message = ArgumentCaptor.forClass(Map.class);
-        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), message.capture());
-        assertThat(message.getValue())
+        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), messageCaptor.capture());
+        assertThat(messageCaptor.getValue())
                 .containsEntry("templateId", "transaction_deposit")
                 .containsEntry("amount", 250L);
     }

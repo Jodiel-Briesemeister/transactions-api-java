@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -20,8 +21,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +32,7 @@ class RegisterUseCaseTest {
     @Mock private AuthService authService;
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private MessagePublisher messagePublisher;
+    @Captor private ArgumentCaptor<Map<String, Object>> messageCaptor;
 
     @InjectMocks private RegisterUseCase sut;
 
@@ -85,10 +85,8 @@ class RegisterUseCaseTest {
 
         sut.execute("John Doe", "john@example.com", "secret123", "+5511999999999");
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
-        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), captor.capture());
-        assertThat(captor.getValue())
+        verify(messagePublisher).publish(eq(Queue.NOTIFICATIONS_EMAIL), messageCaptor.capture());
+        assertThat(messageCaptor.getValue())
                 .containsEntry("templateId", "user_registered")
                 .containsEntry("userEmail", "john@example.com");
     }

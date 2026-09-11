@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
+    private static final int THREADS = 10;
+
     @Autowired private WithdrawUseCase withdrawUseCase;
     @Autowired private TransferUseCase transferUseCase;
     @Autowired private DepositUseCase depositUseCase;
@@ -33,7 +35,7 @@ class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
     @Autowired private AccountRepository accountRepository;
 
     private String createFundedUser(long balance) {
-        String email = "conc-" + UUID.randomUUID() + "@example.com";
+        String email = "concurrency-" + UUID.randomUUID() + "@example.com";
         String id = userRepository.create(
                 User.create("Concurrency User", email, "hashed-password", null));
         accountRepository.create(id);
@@ -49,24 +51,24 @@ class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
      * Fires every task at the same instant so they collide inside the read-check-write window
      * instead of running one after another.
      */
-    private <T> List<Future<T>> runConcurrently(int threads, Callable<T> task)
-            throws InterruptedException {
-        ExecutorService pool = Executors.newFixedThreadPool(threads);
+    // Not try-with-resources: close() waits with no timeout, so a stuck task would hang the build
+    // instead of failing the assertion below.
+    @SuppressWarnings("resource")
+    private void runConcurrently(Callable<?> task) throws InterruptedException {
+        ExecutorService pool = Executors.newFixedThreadPool(THREADS);
         CountDownLatch startGate = new CountDownLatch(1);
         try {
-            List<Future<T>> futures = new java.util.ArrayList<>();
-            for (int i = 0; i < threads; i++) {
-                futures.add(pool.submit(() -> {
+            for (int i = 0; i < THREADS; i++) {
+                pool.submit(() -> {
                     startGate.await();
                     return task.call();
-                }));
+                });
             }
             startGate.countDown();
             pool.shutdown();
             assertThat(pool.awaitTermination(60, TimeUnit.SECONDS))
                     .as("all tasks finished before the timeout")
                     .isTrue();
-            return futures;
         } finally {
             pool.shutdownNow();
         }
@@ -81,7 +83,7 @@ class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
         AtomicInteger refused = new AtomicInteger();
         List<Throwable> unexpected = new CopyOnWriteArrayList<>();
 
-        runConcurrently(10, () -> {
+        runConcurrently(() -> {
             try {
                 withdrawUseCase.execute(userId, 100L);
                 succeeded.incrementAndGet();
@@ -120,7 +122,7 @@ class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
         // Half the tasks send Alice -> Bob, half send Bob -> Alice. Locking the accounts in the
         // order they are named would let two transactions each hold the row the other needs.
-        runConcurrently(10, () -> {
+        runConcurrently(() -> {
             boolean aliceToBob = index.getAndIncrement() % 2 == 0;
             try {
                 if (aliceToBob) {
