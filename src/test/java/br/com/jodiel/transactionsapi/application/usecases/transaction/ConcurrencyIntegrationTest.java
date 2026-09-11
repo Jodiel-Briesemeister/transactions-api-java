@@ -21,8 +21,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code SELECT ... FOR UPDATE}: the mock-based unit tests only assert that the locking method was
  * called, so they would still pass if the lock did nothing.
  *
- * <p>Run against the code without the lock, both tests fail — the first with a negative balance,
- * the second with a Postgres deadlock (SQLSTATE 40P01).
+ * <p>Run against the code without the lock, both tests fail. In the first, some withdrawals pass the
+ * balance check on a stale read and are then rejected by the non-negative balance constraint
+ * (migration V6) instead of being refused with "Insufficient balance". The second fails with a
+ * Postgres deadlock (SQLSTATE 40P01).
  */
 class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
@@ -102,8 +104,6 @@ class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
         assertThat(unexpected).as("no unexpected failures").isEmpty();
         assertThat(succeeded.get()).as("withdrawals allowed").isEqualTo(5);
         assertThat(refused.get()).as("withdrawals refused").isEqualTo(5);
-
-        // The whole point: without the lock this lands at -500.
         assertThat(balanceOf(userId)).as("final balance is never negative").isZero();
     }
 
