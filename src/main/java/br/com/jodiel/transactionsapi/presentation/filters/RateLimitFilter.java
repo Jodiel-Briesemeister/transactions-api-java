@@ -106,10 +106,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return new Scope("global", globalTries);
     }
 
+    /**
+     * The connection address, never X-Forwarded-For: the client writes that header, so trusting it
+     * would let anyone claim a fresh address, and with it a fresh budget, on every request. Behind a
+     * reverse proxy, set {@code server.forward-headers-strategy} so Tomcat takes the address from
+     * trusted proxies only.
+     */
     private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded == null || forwarded.isBlank()) return request.getRemoteAddr();
-        return forwarded.split(",")[0].trim();
+        return request.getRemoteAddr();
     }
 
     private record Scope(String name, long limit) {}
