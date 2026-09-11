@@ -39,7 +39,7 @@ class ListTransactionsUseCaseTest {
 
         assertThat(result).singleElement().satisfies(tx -> {
             assertThat(tx.id()).isEqualTo("tx-1");
-            assertThat(tx.type()).isEqualTo(TransactionType.TRANSFER);
+            assertThat(tx.type()).isEqualTo("transfer");
             assertThat(tx.amount()).isEqualTo(100L);
             assertThat(tx.senderName()).isEqualTo("John Doe");
             assertThat(tx.recipientName()).isEqualTo("Jane Doe");

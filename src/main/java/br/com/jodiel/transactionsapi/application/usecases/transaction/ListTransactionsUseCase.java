@@ -3,7 +3,6 @@ package br.com.jodiel.transactionsapi.application.usecases.transaction;
 import br.com.jodiel.transactionsapi.application.dtos.transaction.TransactionResponse;
 import br.com.jodiel.transactionsapi.domain.enums.TransactionType;
 import br.com.jodiel.transactionsapi.domain.interfaces.TransactionRepository;
-import br.com.jodiel.transactionsapi.domain.interfaces.TransactionRepository.TransactionListItem;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +21,7 @@ public class ListTransactionsUseCase {
                                               LocalDateTime from, LocalDateTime to) {
         return transactionRepository.listByUser(userId, type, from, to).stream()
                 .map(item -> new TransactionResponse(
-                        item.id(), item.type(), item.amount(),
+                        item.id(), item.type().getValue(), item.amount(),
                         item.senderId(), item.senderName(),
                         item.recipientId(), item.recipientName(),
                         item.createdAt()

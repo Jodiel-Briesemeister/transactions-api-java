@@ -32,6 +32,13 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
         return new HttpEntity<>(body, headers);
     }
 
+    /** A response without a body fails the assertion here instead of surfacing as an NPE. */
+    private static JsonNode body(ResponseEntity<JsonNode> response) {
+        JsonNode body = response.getBody();
+        assertThat(body).as("response body").isNotNull();
+        return body;
+    }
+
     private String register(String email) {
         ResponseEntity<JsonNode> response = rest.postForEntity("/auth/register", Map.of(
                 "name", "Flow User",
@@ -41,15 +48,14 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
         ), JsonNode.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        return response.getBody().get("accessToken").asText();
+        return body(response).get("accessToken").asText();
     }
 
     private long balanceOf(String token) {
         ResponseEntity<JsonNode> response = rest.exchange("/transactions/balance", HttpMethod.GET,
                 authed(null, token), JsonNode.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        return response.getBody().get("balance").asLong();
+        return body(response).get("balance").asLong();
     }
 
     @Test
@@ -86,7 +92,7 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
                 authed(Map.of("amount", 500), token), JsonNode.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
-        assertThat(response.getBody().get("message").asText()).isEqualTo("Insufficient balance");
+        assertThat(body(response).get("message").asText()).isEqualTo("Insufficient balance");
         assertThat(balanceOf(token)).isEqualTo(100L);
     }
 
@@ -110,7 +116,7 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("the transaction list accepts the lowercase type filter used by the Node API")
+    @DisplayName("the transaction list accepts the lowercase type filter")
     void listsTransactionsWithLowercaseFilter() {
         String token = register(uniqueEmail());
         rest.exchange("/transactions/deposit", HttpMethod.POST,
@@ -127,7 +133,7 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
                 authed(null, token), JsonNode.class);
         assertThat(deposits.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(deposits.getBody()).hasSize(1);
-        assertThat(deposits.getBody().get(0).get("type").asText()).isEqualTo("DEPOSIT");
+        assertThat(deposits.getBody().get(0).get("type").asText()).isEqualTo("deposit");
         assertThat(deposits.getBody().get(0).get("amount").asLong()).isEqualTo(100L);
     }
 
@@ -140,13 +146,13 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<JsonNode> profile = rest.exchange("/user/profile", HttpMethod.GET,
                 authed(null, token), JsonNode.class);
         assertThat(profile.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(profile.getBody().get("email").asText()).isEqualTo(email);
-        assertThat(profile.getBody().has("passwordHash")).isFalse();
+        assertThat(body(profile).get("email").asText()).isEqualTo(email);
+        assertThat(body(profile).has("passwordHash")).isFalse();
 
         ResponseEntity<JsonNode> updated = rest.exchange("/user/profile", HttpMethod.PATCH,
                 authed(Map.of("name", "Renamed User"), token), JsonNode.class);
         assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(updated.getBody().get("name").asText()).isEqualTo("Renamed User");
+        assertThat(body(updated).get("name").asText()).isEqualTo("Renamed User");
     }
 
     @Test
@@ -159,8 +165,8 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
                 Map.of("email", email, "password", "Str0ng!Pass"), JsonNode.class);
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        String accessToken = login.getBody().get("accessToken").asText();
-        String refreshToken = login.getBody().get("refreshToken").asText();
+        String accessToken = body(login).get("accessToken").asText();
+        String refreshToken = body(login).get("refreshToken").asText();
         assertThat(balanceOf(accessToken)).isZero();
 
         ResponseEntity<Void> logout = rest.exchange("/auth/logout", HttpMethod.POST,
@@ -181,12 +187,12 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
 
         ResponseEntity<JsonNode> login = rest.postForEntity("/auth/login",
                 Map.of("email", email, "password", "Str0ng!Pass"), JsonNode.class);
-        String refreshToken = login.getBody().get("refreshToken").asText();
+        String refreshToken = body(login).get("refreshToken").asText();
 
         ResponseEntity<JsonNode> refreshed = rest.postForEntity("/auth/refresh",
                 Map.of("refreshToken", refreshToken), JsonNode.class);
         assertThat(refreshed.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(refreshed.getBody().get("refreshToken").asText()).isNotEqualTo(refreshToken);
+        assertThat(body(refreshed).get("refreshToken").asText()).isNotEqualTo(refreshToken);
 
         ResponseEntity<JsonNode> reuse = rest.postForEntity("/auth/refresh",
                 Map.of("refreshToken", refreshToken), JsonNode.class);
@@ -212,8 +218,8 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
                 "name", "X", "email", "not-an-email", "password", "short"), JsonNode.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().get("message").asText()).isEqualTo("Validation error");
-        assertThat(response.getBody().get("errors").fieldNames())
+        assertThat(body(response).get("message").asText()).isEqualTo("Validation error");
+        assertThat(body(response).get("errors").fieldNames())
                 .toIterable().contains("email", "password", "name");
     }
 
@@ -259,7 +265,7 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<JsonNode> login = rest.postForEntity("/auth/login",
                 Map.of("email", email, "password", "Str0ng!Pass"), JsonNode.class);
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(login.getBody().get("code").asText()).isEqualTo("ACCOUNT_INACTIVE");
+        assertThat(body(login).get("code").asText()).isEqualTo("ACCOUNT_INACTIVE");
 
         ResponseEntity<JsonNode> reactivated = rest.postForEntity("/auth/reactivate",
                 Map.of("email", email, "password", "Str0ng!Pass"), JsonNode.class);
@@ -271,12 +277,12 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
     void healthReportsDependencies() {
         ResponseEntity<JsonNode> liveness = rest.getForEntity("/health", JsonNode.class);
         assertThat(liveness.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(liveness.getBody().get("status").asText()).isEqualTo("ok");
+        assertThat(body(liveness).get("status").asText()).isEqualTo("ok");
 
         ResponseEntity<JsonNode> dependencies =
                 rest.getForEntity("/health/dependencies", JsonNode.class);
         assertThat(dependencies.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(dependencies.getBody().get("dependencies").fieldNames())
+        assertThat(body(dependencies).get("dependencies").fieldNames())
                 .toIterable().contains("db", "redis");
     }
 }
