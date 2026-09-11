@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TransactionRepository {
-    String create(Transaction transaction);
+    void create(Transaction transaction);
     List<TransactionListItem> listByUser(String userId, TransactionType type,
                                          LocalDateTime from, LocalDateTime to);
 

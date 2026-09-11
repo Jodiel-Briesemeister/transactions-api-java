@@ -6,13 +6,14 @@ import br.com.jodiel.transactionsapi.domain.interfaces.TransactionRepository;
 import br.com.jodiel.transactionsapi.infrastructure.database.Uuids;
 import br.com.jodiel.transactionsapi.infrastructure.database.jpa.TransactionJpaEntity;
 import br.com.jodiel.transactionsapi.infrastructure.database.jparepositories.TransactionJpaRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
@@ -20,16 +21,16 @@ import org.springframework.stereotype.Repository;
 public class PostgresTransactionRepository implements TransactionRepository {
 
     private final TransactionJpaRepository jpa;
-    private final EntityManager entityManager;
+    private final JdbcClient jdbcClient;
 
-    public PostgresTransactionRepository(TransactionJpaRepository jpa, EntityManager entityManager) {
+    public PostgresTransactionRepository(TransactionJpaRepository jpa, JdbcClient jdbcClient) {
         this.jpa = jpa;
-        this.entityManager = entityManager;
+        this.jdbcClient = jdbcClient;
     }
 
     @Override
     @Transactional
-    public String create(Transaction transaction) {
+    public void create(Transaction transaction) {
         TransactionJpaEntity entity = new TransactionJpaEntity();
         entity.setId(UUID.randomUUID());
         entity.setUserId(Uuids.require(transaction.getUserId()));
@@ -41,7 +42,7 @@ public class PostgresTransactionRepository implements TransactionRepository {
         entity.setCreatedAt(LocalDateTime.now());
         entity.setNew(true);
 
-        return jpa.save(entity).getId().toString();
+        jpa.save(entity);
     }
 
     @Override
@@ -51,6 +52,16 @@ public class PostgresTransactionRepository implements TransactionRepository {
         UUID id = Uuids.parse(userId).orElse(null);
         if (id == null) return List.of();
 
+        JdbcClient.StatementSpec statement = jdbcClient.sql(listByUserSql(type, from, to))
+                .param("userId", id);
+        if (type != null) statement.param("type", type.getValue());
+        if (from != null) statement.param("from", from);
+        if (to != null) statement.param("to", to);
+
+        return statement.query(PostgresTransactionRepository::toListItem).list();
+    }
+
+    private static String listByUserSql(TransactionType type, LocalDateTime from, LocalDateTime to) {
         StringBuilder sql = new StringBuilder("""
                 SELECT t.id, t.type, t.amount, t.created_at,
                        t.user_id AS sender_id, sender.name AS sender_name,
@@ -65,36 +76,18 @@ public class PostgresTransactionRepository implements TransactionRepository {
         if (from != null) sql.append(" AND t.created_at >= :from");
         if (to != null) sql.append(" AND t.created_at <= :to");
         sql.append(" ORDER BY t.created_at DESC");
-
-        Query query = entityManager.createNativeQuery(sql.toString());
-        query.setParameter("userId", id);
-        if (type != null) query.setParameter("type", type.getValue());
-        if (from != null) query.setParameter("from", from);
-        if (to != null) query.setParameter("to", to);
-
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = query.getResultList();
-
-        return rows.stream().map(row -> new TransactionListItem(
-                asString(row[0]),
-                TransactionType.valueOf(((String) row[1]).toUpperCase()),
-                ((Number) row[2]).longValue(),
-                asString(row[4]),
-                (String) row[5],
-                asString(row[6]),
-                (String) row[7],
-                asDateTime(row[3])
-        )).toList();
+        return sql.toString();
     }
 
-    private static String asString(Object value) {
-        return value == null ? null : value.toString();
-    }
-
-    private static LocalDateTime asDateTime(Object value) {
-        if (value == null) return null;
-        if (value instanceof LocalDateTime ldt) return ldt;
-        if (value instanceof Timestamp ts) return ts.toLocalDateTime();
-        throw new IllegalStateException("Unexpected created_at type: " + value.getClass());
+    private static TransactionListItem toListItem(ResultSet rs, int rowNum) throws SQLException {
+        return new TransactionListItem(
+                rs.getString("id"),
+                TransactionType.valueOf(rs.getString("type").toUpperCase(Locale.ROOT)),
+                rs.getLong("amount"),
+                rs.getString("sender_id"),
+                rs.getString("sender_name"),
+                rs.getString("recipient_id"),
+                rs.getString("recipient_name"),
+                rs.getObject("created_at", LocalDateTime.class));
     }
 }
