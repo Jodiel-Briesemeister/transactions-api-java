@@ -1,6 +1,7 @@
 package br.com.jodiel.transactionsapi.infrastructure.config;
 
 import io.github.bucket4j.distributed.ExpirationAfterWriteStrategy;
+import io.github.bucket4j.distributed.proxy.ClientSideConfig;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
@@ -48,16 +49,19 @@ public class Bucket4jConfig {
     }
 
     /**
-     * The type parameter is the <em>key</em> type, so this is parameterised with String and buckets
+     * The type parameter is the <em>key</em> type, so this is parameterized with String and buckets
      * are addressed by a readable key such as {@code rl:login:203.0.113.7}.
      */
     @Bean
     public LettuceBasedProxyManager<String> lettuceProxyManager(
             StatefulRedisConnection<String, byte[]> connection) {
+        // Without a TTL every distinct client IP would leave a bucket in Redis forever.
+        ClientSideConfig clientSideConfig = ClientSideConfig.getDefault()
+                .withExpirationAfterWriteStrategy(ExpirationAfterWriteStrategy
+                        .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(windowMinutes)));
+
         return LettuceBasedProxyManager.builderFor(connection)
-                // Without a TTL every distinct client IP would leave a bucket in Redis forever.
-                .withExpirationStrategy(ExpirationAfterWriteStrategy
-                        .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(windowMinutes)))
+                .withClientSideConfig(clientSideConfig)
                 .build();
     }
 }
