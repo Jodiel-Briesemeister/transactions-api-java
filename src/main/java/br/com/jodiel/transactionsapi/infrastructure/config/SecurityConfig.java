@@ -31,7 +31,8 @@ import java.util.Map;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
-            "/auth/**", "/health/**", "/actuator/**",
+            "/auth/register", "/auth/login", "/auth/refresh", "/auth/reactivate",
+            "/health/**", "/actuator/health/**", "/actuator/prometheus",
             "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**"
     };
 

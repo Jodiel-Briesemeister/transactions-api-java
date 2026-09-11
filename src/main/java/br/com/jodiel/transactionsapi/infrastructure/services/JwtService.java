@@ -46,7 +46,7 @@ public class JwtService implements AuthService {
                     .parseSignedClaims(token)
                     .getPayload();
             return claims.getSubject();
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             throw new AppException("Invalid or expired token", 401);
         }
     }
@@ -62,7 +62,7 @@ public class JwtService implements AuthService {
             long exp = claims.getExpiration().getTime() / 1000;
             long now = Instant.now().getEpochSecond();
             return Math.max(0, exp - now);
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return 0;
         }
     }

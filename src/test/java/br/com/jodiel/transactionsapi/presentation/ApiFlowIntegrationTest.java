@@ -180,6 +180,25 @@ class ApiFlowIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("logout without an access token is 401 and leaves the refresh token usable")
+    void logoutRequiresAuthentication() {
+        String email = uniqueEmail();
+        register(email);
+
+        ResponseEntity<JsonNode> login = rest.postForEntity("/auth/login",
+                Map.of("email", email, "password", "Str0ng!Pass"), JsonNode.class);
+        String refreshToken = body(login).get("refreshToken").asText();
+
+        ResponseEntity<JsonNode> logout = rest.postForEntity("/auth/logout",
+                Map.of("refreshToken", refreshToken), JsonNode.class);
+        assertThat(logout.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        ResponseEntity<JsonNode> refreshed = rest.postForEntity("/auth/refresh",
+                Map.of("refreshToken", refreshToken), JsonNode.class);
+        assertThat(refreshed.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     @DisplayName("refresh rotates the token pair and burns the old refresh token")
     void refreshRotatesTokens() {
         String email = uniqueEmail();
