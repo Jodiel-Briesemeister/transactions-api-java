@@ -24,7 +24,6 @@
         <logstash.version>8.0</logstash.version>
         <springdoc.version>2.8.17</springdoc.version>
         <spring-dotenv.version>4.0.0</spring-dotenv.version>
-        <!-- The 2.28.x appender line is built against OpenTelemetry 1.62; upgrade it together with opentelemetry.version. -->
         <opentelemetry-logback-appender.version>2.28.1-alpha</opentelemetry-logback-appender.version>
 
         <!--
@@ -49,10 +48,7 @@
                 <artifactId>commons-compress</artifactId>
                 <version>1.28.0</version>
             </dependency>
-            <!--
-              Micrometer's OpenTelemetry bridge brings semconv 1.32.0, which wins as the nearer
-              dependency. The logback appender needs 1.41.1 and fails at startup without it.
-            -->
+            <!-- Micrometer's OpenTelemetry bridge pulls in 1.32.0; the logback appender needs 1.41.1. -->
             <dependency>
                 <groupId>io.opentelemetry.semconv</groupId>
                 <artifactId>opentelemetry-semconv</artifactId>
@@ -222,10 +218,24 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <!-- Safety net: never let a test JVM that fails to exit hang the build. -->
                     <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+                    <!-- Mockito as a startup agent, since JDK 21 warns when it attaches itself; -Xshare:off avoids a CDS warning. -->
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
                     <systemPropertyVariables>
                         <!--
                           Testcontainers talks to Docker through docker-java, which otherwise
