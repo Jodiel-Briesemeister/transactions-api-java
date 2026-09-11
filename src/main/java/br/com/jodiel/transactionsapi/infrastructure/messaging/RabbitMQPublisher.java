@@ -23,7 +23,7 @@ public class RabbitMQPublisher implements MessagePublisher {
     }
 
     /**
-     * When called inside a transaction the send is deferred to after commit, so a rolled back
+     * When called inside a transaction, sending is deferred to after commit, so a rolled back
      * deposit never produces a "your deposit went through" email. Outside a transaction it is sent
      * straight away. Doing this here keeps the deferral out of the use cases.
      */

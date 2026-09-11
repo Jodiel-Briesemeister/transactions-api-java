@@ -4,7 +4,7 @@ global:
 
 scrape_configs:
   # Spring Boot exposes metrics through Micrometer, so Prometheus scrapes the app directly
-  # instead of going through the OTel collector as the Node version does.
+  # instead of going through the OTel collector.
   - job_name: transactions-api
     metrics_path: /actuator/prometheus
     static_configs:

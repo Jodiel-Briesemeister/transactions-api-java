@@ -99,7 +99,7 @@ public class TransferUseCase {
     private Account lock(String userId) {
         return accountRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> {
-                    log.error("Account not found userId={}", userId);
+                    log.error("Account not found while locking userId={}", userId);
                     return new AppException("Account not found", 404);
                 });
     }

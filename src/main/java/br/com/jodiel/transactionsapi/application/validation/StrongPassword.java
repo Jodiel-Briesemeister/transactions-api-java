@@ -6,9 +6,8 @@ import jakarta.validation.Payload;
 import java.lang.annotation.*;
 
 /**
- * Password policy for new accounts, matching the strongPasswordSchema of the Node version:
- * at least 8 characters with upper case, lower case, a digit and a symbol, and no long runs of
- * repeated or sequential characters.
+ * Password policy for new accounts: at least 8 characters with upper case, lower case, a digit and
+ * a symbol, and no long runs of repeated or sequential characters.
  */
 @Documented
 @Constraint(validatedBy = StrongPasswordValidator.class)

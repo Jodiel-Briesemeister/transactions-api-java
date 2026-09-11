@@ -9,7 +9,6 @@ target/
 .idea/
 *.iml
 .vscode/
-*.class
 
 logs/
 *.log
@@ -17,5 +16,4 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Claude Code local settings
 .claude/settings.local.json

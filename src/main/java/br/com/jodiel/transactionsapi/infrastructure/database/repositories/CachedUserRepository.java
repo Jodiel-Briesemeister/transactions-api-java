@@ -16,8 +16,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 
 /**
- * Decorator that memoises {@link #findById} in Redis, mirroring the CachedUserRepository of the
- * Node version. Every write path evicts the entry so a stale profile is never served.
+ * Decorator that caches {@link #findById} in Redis. Every write path evicts the entry, so a stale
+ * profile is never served.
  */
 @Repository
 @Primary
