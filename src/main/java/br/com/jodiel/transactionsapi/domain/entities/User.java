@@ -1,7 +1,10 @@
 package br.com.jodiel.transactionsapi.domain.entities;
 
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 
+@Getter
 public class User {
 
     private final String id;
@@ -35,13 +38,4 @@ public class User {
                                      LocalDateTime createdAt, LocalDateTime updatedAt) {
         return new User(id, name, email, passwordHash, phone, isActive, createdAt, updatedAt);
     }
-
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
-    public String getPasswordHash() { return passwordHash; }
-    public String getPhone() { return phone; }
-    public boolean isActive() { return isActive; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

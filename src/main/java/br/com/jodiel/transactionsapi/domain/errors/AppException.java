@@ -1,5 +1,8 @@
 package br.com.jodiel.transactionsapi.domain.errors;
 
+import lombok.Getter;
+
+@Getter
 public class AppException extends RuntimeException {
 
     private final int statusCode;
@@ -15,13 +18,5 @@ public class AppException extends RuntimeException {
         super(message);
         this.statusCode = statusCode;
         this.code = code;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
-    }
-
-    public String getCode() {
-        return code;
     }
 }

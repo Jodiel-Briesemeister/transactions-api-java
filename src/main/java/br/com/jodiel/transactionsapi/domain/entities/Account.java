@@ -1,7 +1,10 @@
 package br.com.jodiel.transactionsapi.domain.entities;
 
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 
+@Getter
 public class Account {
 
     private final String id;
@@ -23,9 +26,4 @@ public class Account {
     public static Account reconstitute(String id, String userId, long balance, LocalDateTime createdAt) {
         return new Account(id, userId, balance, createdAt);
     }
-
-    public String getId() { return id; }
-    public String getUserId() { return userId; }
-    public long getBalance() { return balance; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }
