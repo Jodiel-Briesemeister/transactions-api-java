@@ -29,7 +29,7 @@ same domain, same endpoints, same architecture.
 
 ```
 src/main/java/br/com/jodiel/transactionsapi/
-├── domain/          # Entities, repository interfaces, enums, AppException
+├── domain/          # Entities, ports (repository and service interfaces), enums, AppException
 ├── application/     # Use cases, DTOs, custom validation
 ├── infrastructure/  # JPA entities and repositories, Redis, RabbitMQ, config, jobs
 └── presentation/    # Controllers, security filters, exception handling
@@ -48,10 +48,10 @@ Two places need explicit configuration, because component scan alone cannot expr
   Security chain, and `JwtAuthFilter` is constructed by hand inside `SecurityConfig` — Boot
   auto-registers every `Filter` bean in the servlet container, which would run it twice per request.
 
-Use cases carry `@Transactional`. In the Node version the transaction boundary is an explicit
-`IUnitOfWork` handed to the use case; on the JVM the idiomatic equivalent is declarative, so the use
-case marks the boundary and Spring's proxy turns it into `setAutoCommit(false)` plus a commit or
-rollback on a single pooled connection.
+Use cases whose writes must succeed or fail together carry `@Transactional`. In the Node version the
+transaction boundary is an explicit `IUnitOfWork` handed to the use case; on the JVM the idiomatic
+equivalent is declarative, so the use case marks the boundary and Spring's proxy turns it into
+`setAutoCommit(false)` plus a commit or rollback on a single pooled connection.
 
 ## Features
 
@@ -99,9 +99,19 @@ Grafana at `http://localhost:3001`.
 
 ### Running with Docker
 
+The infrastructure from `docker compose up -d` must be running. Inside the container, `localhost`
+is the container itself, so the hosts from `.env` are overridden to point at the machine running
+Docker:
+
 ```bash
 docker build -t transactions-api .
-docker run --env-file .env -p 8080:8080 transactions-api
+docker run --env-file .env -p 8080:8080 \
+  --add-host=host.docker.internal:host-gateway \
+  -e DB_HOST=host.docker.internal \
+  -e REDIS_HOST=host.docker.internal \
+  -e RABBITMQ_URL=amqp://host.docker.internal:5672 \
+  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318 \
+  transactions-api
 ```
 
 ## API Endpoints
@@ -152,8 +162,8 @@ All endpoints require authentication.
 ## Testing
 
 ```bash
-./mvnw test        # unit tests only
-./mvnw verify      # unit + integration tests (needs Docker running)
+./mvnw test                              # all tests, unit and integration (needs Docker running)
+./mvnw test -Dtest='!*IntegrationTest'   # unit tests only, no Docker needed
 ```
 
 - **Unit tests** cover every use case with mocked repositories — business rules, error codes and
@@ -166,7 +176,7 @@ All endpoints require authentication.
 ## Money representation
 
 Balances and amounts are stored as `BIGINT` and handled as `long` — integer minor units (cents),
-never floating point. The Node version uses a 32-bit `integer` column; this port widens it to 64-bit
+never floating point. The Node version uses 32-bit `integer` columns; this port widens them to 64-bit
 so large balances cannot overflow.
 
 ## Observability
@@ -176,16 +186,17 @@ so large balances cannot overflow.
   directly. This differs from the Node version, which pushes metrics through the collector — direct
   scraping is the idiomatic Spring Boot setup.
 - **Logs** are structured JSON on stdout (Logstash Logback encoder), enriched with the trace id.
-  Shipping them to Loki requires a log agent such as Promtail or Grafana Alloy; the collector
-  pipeline in `observability/` is wired for traces and metrics.
+  The collector in `observability/` has a logs pipeline to Loki, but this app does not export logs
+  over OTLP, so getting them into Loki requires a log agent such as Promtail or Grafana Alloy.
 
 ## Differences from the Node version
 
 Behavior is intentionally identical apart from these points:
 
-| Topic                                  | Node                            | Java                                    |
-|----------------------------------------|---------------------------------|-----------------------------------------|
-| Success responses for money operations | `200`/`201` with a message body | `204 No Content`                        |
-| Balance column                         | 32-bit integer                  | 64-bit bigint                           |
-| Notification publishing                | inside the transaction          | deferred to after commit                |
-| Metrics                                | pushed via OTel collector       | scraped from Actuator                   |
+| Topic                                  | Node                                                 | Java                                                                 |
+|----------------------------------------|------------------------------------------------------|----------------------------------------------------------------------|
+| Success responses for money operations | `200`/`201` with a message body                      | `204 No Content`                                                     |
+| Balance and amount columns             | 32-bit integer                                       | 64-bit bigint                                                        |
+| `/health/dependencies`                 | `postgres` and `redis`, each with status and latency | every Actuator indicator (`db`, `redis`, `rabbit`, …) as `UP`/`DOWN` |
+| Metrics                                | pushed via OTel collector                            | scraped from Actuator                                                |
+| Logs                                   | exported over OTLP to Loki via the collector         | JSON on stdout                                                       |
