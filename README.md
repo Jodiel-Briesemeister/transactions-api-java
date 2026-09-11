@@ -67,7 +67,7 @@ equivalent is declarative, so the use case marks the boundary and Spring's proxy
   sends an email about money that did not move
 - Hourly cleanup job for expired refresh tokens
 - Health endpoints for Postgres, Redis and RabbitMQ
-- Graceful shutdown, structured JSON logging, Prometheus metrics and OTLP traces
+- Graceful shutdown, structured JSON logging, Prometheus metrics, and OTLP traces and logs
 
 ## Getting Started
 
@@ -185,9 +185,8 @@ so large balances cannot overflow.
 - **Metrics** are exposed by Micrometer at `/actuator/prometheus` and scraped by Prometheus
   directly. This differs from the Node version, which pushes metrics through the collector — direct
   scraping is the idiomatic Spring Boot setup.
-- **Logs** are structured JSON on stdout (Logstash Logback encoder), enriched with the trace id.
-  The collector in `observability/` has a logs pipeline to Loki, but this app does not export logs
-  over OTLP, so getting them into Loki requires a log agent such as Promtail or Grafana Alloy.
+- **Logs** are exported over OTLP to the collector and land in Loki with the trace id attached, and
+  are also written to stdout as structured JSON (Logstash Logback encoder).
 
 ## Differences from the Node version
 
@@ -199,4 +198,3 @@ Behavior is intentionally identical apart from these points:
 | Balance and amount columns             | 32-bit integer                                       | 64-bit bigint                                                        |
 | `/health/dependencies`                 | `postgres` and `redis`, each with status and latency | every Actuator indicator (`db`, `redis`, `rabbit`, …) as `UP`/`DOWN` |
 | Metrics                                | pushed via OTel collector                            | scraped from Actuator                                                |
-| Logs                                   | exported over OTLP to Loki via the collector         | JSON on stdout                                                       |

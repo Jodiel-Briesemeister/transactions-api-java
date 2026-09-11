@@ -13,9 +13,12 @@ management:
     sampling:
       probability: 0.0
   otlp:
+    # No collector in tests; exporting would just log connection failures.
     tracing:
-      # No collector in tests; exporting would just log connection failures.
       endpoint: http://localhost:1/v1/traces
+    logging:
+      export:
+        enabled: false
 
 app:
   cors:

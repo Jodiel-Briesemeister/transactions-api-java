@@ -9,8 +9,11 @@
         </encoder>
     </appender>
 
+    <appender name="OTEL" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender"/>
+
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="OTEL"/>
     </root>
 
     <logger name="br.com.jodiel.transactionsapi" level="${logLevel}"/>
