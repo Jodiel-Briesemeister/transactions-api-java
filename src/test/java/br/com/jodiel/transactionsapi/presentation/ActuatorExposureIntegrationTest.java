@@ -15,10 +15,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Checks what the actuator publishes. Spring Boot switches metrics export off in tests, which would
- * hide the Prometheus endpoint, so this class opts back in with {@code @AutoConfigureObservability}.
- */
+/** Boot turns metrics export off in tests, which would hide the Prometheus endpoint. */
 @AutoConfigureObservability
 class ActuatorExposureIntegrationTest extends AbstractIntegrationTest {
 
@@ -52,7 +49,6 @@ class ActuatorExposureIntegrationTest extends AbstractIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken());
 
-        // Authenticated, so a 404 proves the endpoint is gone rather than merely protected.
         for (String path : List.of("/actuator/metrics", "/actuator/info")) {
             ResponseEntity<String> response = rest.exchange(path, HttpMethod.GET,
                     new HttpEntity<>(headers), String.class);

@@ -5,11 +5,7 @@ import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppen
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Component;
 
-/**
- * Logback creates the OTEL appender from logback-spring.xml before the Spring context exists, so the
- * SDK cannot be injected into it. Once Spring Boot has built the SDK, with its OTLP log exporter, this
- * hands it over; events logged before that point are buffered by the appender and sent afterward.
- */
+/** Logback builds the OTEL appender before Spring starts, so the SDK is handed to it here. */
 @Component
 public class OpenTelemetryAppenderInstaller implements InitializingBean {
 

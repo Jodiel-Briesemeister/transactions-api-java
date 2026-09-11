@@ -18,7 +18,6 @@ datasources:
         datasourceUid: loki
         spanStartTimeShift: '-1h'
         spanEndTimeShift: '1h'
-        # Logs arrive over OTLP, so the trace id is structured metadata, not text inside the line.
         customQuery: true
         query: '{service_name=~".+"} | trace_id="$${__trace.traceId}"'
       serviceMap:

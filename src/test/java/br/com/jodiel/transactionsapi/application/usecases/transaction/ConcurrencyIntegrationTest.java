@@ -17,14 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Proves the balance is safe under concurrency. These are the tests that actually exercise
- * {@code SELECT ... FOR UPDATE}: the mock-based unit tests only assert that the locking method was
- * called, so they would still pass if the lock did nothing.
- *
- * <p>Run against the code without the lock, both tests fail. In the first, some withdrawals pass the
- * balance check on a stale read and are then rejected by the non-negative balance constraint
- * (migration V6) instead of being refused with "Insufficient balance". The second fails with a
- * Postgres deadlock (SQLSTATE 40P01).
+ * Exercises {@code SELECT ... FOR UPDATE} against real rows; the mock-based unit tests only check
+ * that the locking method is called.
  */
 class ConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
