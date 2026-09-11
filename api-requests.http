@@ -1,5 +1,5 @@
 ### Transactions API — request collection
-### Run the requests top to bottom; @accessToken and @refreshToken fill themselves in.
+### Run the requests top to bottom; Login and Refresh store accessToken and refreshToken for the rest.
 
 @host = http://localhost:8080
 @email = alice@example.com
@@ -50,8 +50,10 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-@accessToken = {{login.response.body.accessToken}}
-@refreshToken = {{login.response.body.refreshToken}}
+> {%
+    client.global.set("accessToken", response.body["accessToken"]);
+    client.global.set("refreshToken", response.body["refreshToken"]);
+%}
 
 ### Balance
 GET {{host}}/transactions/balance
@@ -100,11 +102,16 @@ Content-Type: application/json
 
 { "name": "Alice Renamed" }
 
-### Rotate the token pair
+### Rotate the token pair (the old refresh token stops working)
 POST {{host}}/auth/refresh
 Content-Type: application/json
 
 { "refreshToken": "{{refreshToken}}" }
+
+> {%
+    client.global.set("accessToken", response.body["accessToken"]);
+    client.global.set("refreshToken", response.body["refreshToken"]);
+%}
 
 ### Logout (revokes the refresh token and blacklists the access token)
 POST {{host}}/auth/logout
