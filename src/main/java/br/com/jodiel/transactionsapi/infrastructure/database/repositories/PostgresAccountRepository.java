@@ -8,6 +8,7 @@ import br.com.jodiel.transactionsapi.infrastructure.database.jparepositories.Acc
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -54,7 +55,7 @@ public class PostgresAccountRepository implements AccountRepository {
     }
 
     private Account toDomain(AccountJpaEntity e) {
-        return Account.reconstitute(e.getId().toString(), e.getUserId().toString(),
+        return Account.reconstitute(Objects.requireNonNull(e.getId()).toString(), e.getUserId().toString(),
                 e.getBalance(), e.getCreatedAt());
     }
 }

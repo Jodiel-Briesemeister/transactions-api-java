@@ -9,6 +9,7 @@ import br.com.jodiel.transactionsapi.infrastructure.database.jparepositories.Use
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -25,10 +26,11 @@ public class PostgresUserRepository implements UserRepository {
     @Override
     @Transactional
     public String create(User user) {
+        UUID id = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
 
         UserJpaEntity entity = new UserJpaEntity();
-        entity.setId(UUID.randomUUID());
+        entity.setId(id);
         entity.setName(user.getName());
         entity.setEmail(user.getEmail());
         entity.setPasswordHash(user.getPasswordHash());
@@ -38,7 +40,8 @@ public class PostgresUserRepository implements UserRepository {
         entity.setUpdatedAt(now);
         entity.setNew(true);
 
-        return jpa.save(entity).getId().toString();
+        jpa.save(entity);
+        return id.toString();
     }
 
     @Override
@@ -79,7 +82,7 @@ public class PostgresUserRepository implements UserRepository {
     }
 
     private User toDomain(UserJpaEntity e) {
-        return User.reconstitute(e.getId().toString(), e.getName(), e.getEmail(), e.getPasswordHash(),
-                e.getPhone(), e.isActive(), e.getCreatedAt(), e.getUpdatedAt());
+        return User.reconstitute(Objects.requireNonNull(e.getId()).toString(), e.getName(), e.getEmail(),
+                e.getPasswordHash(), e.getPhone(), e.isActive(), e.getCreatedAt(), e.getUpdatedAt());
     }
 }

@@ -26,5 +26,5 @@ public interface AccountJpaRepository extends JpaRepository<AccountJpaEntity, UU
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE AccountJpaEntity a SET a.balance = a.balance + :delta, a.updatedAt = CURRENT_TIMESTAMP WHERE a.userId = :userId")
-    int updateBalance(@Param("userId") UUID userId, @Param("delta") long delta);
+    void updateBalance(@Param("userId") UUID userId, @Param("delta") long delta);
 }

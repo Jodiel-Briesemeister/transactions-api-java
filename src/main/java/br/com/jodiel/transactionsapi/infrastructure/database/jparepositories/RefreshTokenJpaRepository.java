@@ -16,13 +16,13 @@ public interface RefreshTokenJpaRepository extends JpaRepository<RefreshTokenJpa
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RefreshTokenJpaEntity r WHERE r.tokenHash = :tokenHash")
-    int deleteByTokenHash(@Param("tokenHash") String tokenHash);
+    void deleteByTokenHash(@Param("tokenHash") String tokenHash);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RefreshTokenJpaEntity r WHERE r.userId = :userId")
-    int deleteByUserId(@Param("userId") UUID userId);
+    void deleteByUserId(@Param("userId") UUID userId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM RefreshTokenJpaEntity r WHERE r.expiresAt < :now")
-    int deleteExpiredBefore(@Param("now") LocalDateTime now);
+    void deleteExpiredBefore(@Param("now") LocalDateTime now);
 }

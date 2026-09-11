@@ -25,8 +25,4 @@ public final class Uuids {
         return parse(value).orElseThrow(
                 () -> new IllegalArgumentException("Not a valid UUID: " + value));
     }
-
-    public static String toStringOrNull(UUID value) {
-        return value == null ? null : value.toString();
-    }
 }

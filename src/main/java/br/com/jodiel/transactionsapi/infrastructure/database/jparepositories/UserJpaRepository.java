@@ -12,8 +12,6 @@ import java.util.UUID;
 public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     Optional<UserJpaEntity> findByEmail(String email);
 
-    boolean existsByEmail(String email);
-
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE UserJpaEntity u SET u.isActive = false, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :id")
     void deactivateById(@Param("id") UUID id);

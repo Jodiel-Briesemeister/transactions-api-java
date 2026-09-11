@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -41,7 +42,8 @@ public class PostgresRefreshTokenRepository implements RefreshTokenRepository {
     @Override
     public Optional<RefreshTokenData> findByToken(String token) {
         return jpa.findByTokenHash(hash(token))
-                .map(e -> new RefreshTokenData(e.getId().toString(), e.getUserId().toString(), e.getExpiresAt()));
+                .map(e -> new RefreshTokenData(Objects.requireNonNull(e.getId()).toString(),
+                        e.getUserId().toString(), e.getExpiresAt()));
     }
 
     @Override
