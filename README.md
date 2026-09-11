@@ -2,7 +2,7 @@
 
 ![Tests](https://github.com/Jodiel-Briesemeister/transactions-api-java/actions/workflows/ci.yml/badge.svg)
 
-A RESTful API for managing financial transactions, built with **Java 21**, **Spring Boot 3.4** and
+A RESTful API for managing financial transactions, built with **Java 21**, **Spring Boot 3.5** and
 **Clean Architecture**. Pairs with
 [notifications-service](https://github.com/Jodiel-Briesemeister/notifications-service) for
 transactional email delivery over RabbitMQ.
@@ -14,7 +14,7 @@ same domain, same endpoints, same architecture.
 ## Tech Stack
 
 - **Language:** Java 21
-- **Framework:** Spring Boot 3.4 (Spring Web, Spring Security, Spring Data JPA)
+- **Framework:** Spring Boot 3.5 (Spring Web, Spring Security, Spring Data JPA)
 - **Database:** PostgreSQL + Hibernate, migrations with Flyway
 - **Cache:** Redis (Spring Data Redis + Lettuce)
 - **Auth:** JWT access tokens + rotating refresh tokens (JJWT)
@@ -109,10 +109,10 @@ docker run --env-file .env -p 8080:8080 transactions-api
 ### Auth
 
 | Method | Path               | Auth | Description                      |
-| ------ | ------------------ | ---- | -------------------------------- |
+|--------|--------------------|------|----------------------------------|
 | `POST` | `/auth/register`   | —    | Register a new user              |
-| `POST` | `/auth/login`      | —    | Login and receive tokens         |
-| `POST` | `/auth/logout`     | ✓    | Logout and revoke both tokens    |
+| `POST` | `/auth/login`      | —    | Log in and receive tokens        |
+| `POST` | `/auth/logout`     | ✓   | Log out and revoke both tokens   |
 | `POST` | `/auth/refresh`    | —    | Rotate the token pair            |
 | `POST` | `/auth/reactivate` | —    | Reactivate a deactivated account |
 
@@ -121,7 +121,7 @@ docker run --env-file .env -p 8080:8080 transactions-api
 All endpoints require authentication.
 
 | Method | Path                     | Description                                          |
-| ------ | ------------------------ | ---------------------------------------------------- |
+|--------|--------------------------|------------------------------------------------------|
 | `GET`  | `/transactions`          | List transactions (supports `?type`, `?from`, `?to`) |
 | `GET`  | `/transactions/balance`  | Get current balance                                  |
 | `POST` | `/transactions/deposit`  | Deposit funds                                        |
@@ -135,19 +135,19 @@ All endpoints require authentication.
 All endpoints require authentication.
 
 | Method   | Path            | Description                 |
-| -------- | --------------- | --------------------------- |
+|----------|-----------------|-----------------------------|
 | `GET`    | `/user/profile` | Get own profile             |
 | `PATCH`  | `/user/profile` | Update name, email or phone |
 | `DELETE` | `/user/account` | Deactivate account          |
 
 ### Health and monitoring
 
-| Method | Path                   | Description                            |
-| ------ | ---------------------- | -------------------------------------- |
-| `GET`  | `/health`              | Liveness check                         |
-| `GET`  | `/health/dependencies` | Postgres, Redis and RabbitMQ status    |
+| Method | Path                   | Description                             |
+|--------|------------------------|-----------------------------------------|
+| `GET`  | `/health`              | Liveness check                          |
+| `GET`  | `/health/dependencies` | Postgres, Redis and RabbitMQ status     |
 | `GET`  | `/actuator/prometheus` | Metrics in Prometheus exposition format |
-| `GET`  | `/swagger-ui.html`     | Interactive API documentation          |
+| `GET`  | `/swagger-ui.html`     | Interactive API documentation           |
 
 ## Testing
 
@@ -161,7 +161,7 @@ All endpoints require authentication.
 - **Integration tests** boot the whole application against real Postgres, Redis and RabbitMQ
   containers via Testcontainers. `RepositoryIntegrationTest` exercises the persistence layer against
   the actual Postgres dialect; `ApiFlowIntegrationTest` drives the HTTP API end to end, from
-  registration through transfer to logout.
+  registration through a transfer to logging out.
 
 ## Money representation
 
@@ -181,12 +181,12 @@ so large balances cannot overflow.
 
 ## Differences from the Node version
 
-Behaviour is intentionally identical apart from these points:
+Behavior is intentionally identical apart from these points:
 
-| Topic | Node | Java |
-| ----- | ---- | ---- |
-| Success responses for money operations | `200`/`201` with a message body | `204 No Content` |
-| Balance column | 32-bit integer | 64-bit bigint |
-| Concurrent debits | unguarded read-then-write | row locked with `SELECT ... FOR UPDATE` |
-| Notification publishing | inside the transaction | deferred to after commit |
-| Metrics | pushed via OTel collector | scraped from Actuator |
+| Topic                                  | Node                            | Java                                    |
+|----------------------------------------|---------------------------------|-----------------------------------------|
+| Success responses for money operations | `200`/`201` with a message body | `204 No Content`                        |
+| Balance column                         | 32-bit integer                  | 64-bit bigint                           |
+| Concurrent debits                      | unguarded read-then-write       | row locked with `SELECT ... FOR UPDATE` |
+| Notification publishing                | inside the transaction          | deferred to after commit                |
+| Metrics                                | pushed via OTel collector       | scraped from Actuator                   |
