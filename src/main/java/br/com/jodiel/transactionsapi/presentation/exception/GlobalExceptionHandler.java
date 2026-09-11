@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
-     * Unique constraints are the last line of defence against races that slip past an
+     * Unique constraints are the last line of defense against races that slip past an
      * application-level "does this email exist?" check, so this is a conflict, not a server error.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -62,17 +63,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
      */
     @Override
     protected ResponseEntity<Object> handleHandlerMethodValidationException(
-            HandlerMethodValidationException ex, HttpHeaders headers,
-            HttpStatusCode status, WebRequest request) {
+            @NonNull HandlerMethodValidationException ex, @NonNull HttpHeaders headers,
+            @NonNull HttpStatusCode status, @NonNull WebRequest request) {
         return ResponseEntity.badRequest().body(Map.of("message", "Validation error"));
     }
 
     /** Request body validation: reports one message per offending field. */
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatusCode status,
-                                                                  WebRequest request) {
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            @NonNull MethodArgumentNotValidException ex, @NonNull HttpHeaders headers,
+            @NonNull HttpStatusCode status, @NonNull WebRequest request) {
         Map<String, String> errors = new TreeMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String field = error instanceof FieldError fe ? fe.getField() : error.getObjectName();

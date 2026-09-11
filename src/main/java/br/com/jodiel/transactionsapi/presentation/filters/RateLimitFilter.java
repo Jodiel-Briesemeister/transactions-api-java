@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -21,9 +22,8 @@ import java.time.Duration;
 import java.util.Map;
 
 /**
- * Redis-backed rate limiting, equivalent to the express-rate-limit setup of the Node version:
- * a tight budget on credential endpoints, a looser one on the rest of /auth, and a global budget
- * for everything else.
+ * Redis-backed rate limiting with three budgets: a tight one on credential endpoints, a looser one
+ * on the rest of /auth, and a global one for everything else.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
@@ -46,7 +46,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.window = Duration.ofMinutes(windowMinutes);
     }
 
-    /** Monitoring and docs endpoints are not rate limited, matching the Node routes. */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -57,8 +56,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-                                    FilterChain chain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain chain) throws ServletException, IOException {
         Scope scope = resolveScope(request.getRequestURI());
         String key = "rl:" + scope.name() + ":" + clientIp(request);
 
