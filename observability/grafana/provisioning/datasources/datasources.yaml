@@ -18,7 +18,9 @@ datasources:
         datasourceUid: loki
         spanStartTimeShift: '-1h'
         spanEndTimeShift: '1h'
-        filterByTraceID: true
+        # Logs arrive over OTLP, so the trace id is structured metadata, not text inside the line.
+        customQuery: true
+        query: '{service_name=~".+"} | trace_id="$${__trace.traceId}"'
       serviceMap:
         datasourceUid: prometheus
       nodeGraph:
@@ -32,7 +34,8 @@ datasources:
     jsonData:
       derivedFields:
         - datasourceUid: tempo
-          matcherRegex: '"traceId":"([a-f0-9]{32})"'
+          matcherType: label
+          matcherRegex: trace_id
           name: TraceID
           url: '$${__value.raw}'
           urlDisplayLabel: Open in Tempo
