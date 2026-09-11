@@ -42,8 +42,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     /**
      * Lets {@code GET /transactions?type=deposit} work. Spring's default enum binding matches the
-     * constant name (DEPOSIT), but the wire format of this API is the lowercase value, as in the
-     * Node version.
+     * constant name (DEPOSIT), but the wire format of this API is the lowercase value.
      */
     @Override
     public void addFormatters(@NonNull FormatterRegistry registry) {
@@ -55,7 +54,7 @@ public class WebConfig implements WebMvcConfigurer {
         public TransactionType convert(@NonNull String source) {
             if (source.isBlank()) return null;
             for (TransactionType type : TransactionType.values()) {
-                if (type.getValue().equalsIgnoreCase(source) || type.name().equalsIgnoreCase(source)) {
+                if (type.getValue().equalsIgnoreCase(source)) {
                     return type;
                 }
             }

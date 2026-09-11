@@ -1,17 +1,13 @@
 package br.com.jodiel.transactionsapi.domain.enums;
 
+import java.util.Locale;
+
 public enum TransactionType {
-    DEPOSIT("deposit"),
-    WITHDRAW("withdraw"),
-    TRANSFER("transfer");
-
-    private final String value;
-
-    TransactionType(String value) {
-        this.value = value;
-    }
+    DEPOSIT,
+    WITHDRAW,
+    TRANSFER;
 
     public String getValue() {
-        return value;
+        return name().toLowerCase(Locale.ROOT);
     }
 }

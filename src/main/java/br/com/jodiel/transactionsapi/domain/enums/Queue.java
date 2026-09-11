@@ -1,15 +1,11 @@
 package br.com.jodiel.transactionsapi.domain.enums;
 
+import java.util.Locale;
+
 public enum Queue {
-    NOTIFICATIONS_EMAIL("notifications_email");
-
-    private final String name;
-
-    Queue(String name) {
-        this.name = name;
-    }
+    NOTIFICATIONS_EMAIL;
 
     public String getName() {
-        return name;
+        return name().toLowerCase(Locale.ROOT);
     }
 }

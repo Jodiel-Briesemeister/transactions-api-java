@@ -1,21 +1,17 @@
 package br.com.jodiel.transactionsapi.domain.enums;
 
+import java.util.Locale;
+
 public enum NotificationTemplate {
-    USER_REGISTERED("user_registered"),
-    USER_DEACTIVATED("user_deactivated"),
-    USER_REACTIVATED("user_reactivated"),
-    TRANSACTION_DEPOSIT("transaction_deposit"),
-    TRANSACTION_WITHDRAW("transaction_withdraw"),
-    TRANSACTION_TRANSFER_SENT("transaction_transfer_sent"),
-    TRANSACTION_TRANSFER_RECEIVED("transaction_transfer_received");
-
-    private final String value;
-
-    NotificationTemplate(String value) {
-        this.value = value;
-    }
+    USER_REGISTERED,
+    USER_DEACTIVATED,
+    USER_REACTIVATED,
+    TRANSACTION_DEPOSIT,
+    TRANSACTION_WITHDRAW,
+    TRANSACTION_TRANSFER_SENT,
+    TRANSACTION_TRANSFER_RECEIVED;
 
     public String getValue() {
-        return value;
+        return name().toLowerCase(Locale.ROOT);
     }
 }
