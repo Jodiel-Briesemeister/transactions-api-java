@@ -187,6 +187,5 @@ Behavior is intentionally identical apart from these points:
 |----------------------------------------|---------------------------------|-----------------------------------------|
 | Success responses for money operations | `200`/`201` with a message body | `204 No Content`                        |
 | Balance column                         | 32-bit integer                  | 64-bit bigint                           |
-| Concurrent debits                      | unguarded read-then-write       | row locked with `SELECT ... FOR UPDATE` |
 | Notification publishing                | inside the transaction          | deferred to after commit                |
 | Metrics                                | pushed via OTel collector       | scraped from Actuator                   |
